@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Jump 3D</title>
+</head>
+<body>
+    <div id="ui">
+        <div id="score">Score: 0</div>
+        <div id="high-score">Best: 0</div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <div class="overlay-content">
+            <h1>Tower Jump 3D</h1>
+            <p>Skakej nahoru po platformach!</p>
+            <div class="controls-info">
+                <p><strong>Ovladani:</strong></p>
+                <p>A / Sipka vlevo - pohyb vlevo</p>
+                <p>D / Sipka vpravo - pohyb vpravo</p>
+                <p>Mezernik / W / Sipka nahoru - skok</p>
+            </div>
+            <button id="start-btn">Start</button>
+            <div id="leaderboard">
+                <h2>Zebricek</h2>
+                <ol id="leaderboard-list"></ol>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="overlay hidden">
+        <div class="overlay-content">
+            <h1>Game Over</h1>
+            <p>Tvoje skore: <span id="final-score">0</span></p>
+            <div id="new-high-score" class="hidden">
+                <p>Nove rekordni skore!</p>
+                <input type="text" id="player-name" placeholder="Zadej jmeno" maxlength="15">
+            </div>
+            <button id="save-score-btn" class="hidden">Ulozit skore</button>
+            <button id="restart-btn">Hrat znovu</button>
+            <div id="game-over-leaderboard">
+                <h2>Zebricek</h2>
+                <ol id="game-over-leaderboard-list"></ol>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "towerjump",
+  "version": "1.0.0",
+  "description": "Tower Jump 3D Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EmperorKunDis/WebProChalengeISS2.git"
+  },
+  "keywords": ["game", "threejs", "tower-jump"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EmperorKunDis/WebProChalengeISS2/issues"
+  },
+  "homepage": "https://github.com/EmperorKunDis/WebProChalengeISS2#readme",
+  "dependencies": {
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  }
+}
