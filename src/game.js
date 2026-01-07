@@ -19,7 +19,6 @@ const PLATFORM_SPACING_MIN = 1.8;
 const PLATFORM_SPACING_MAX = 3.2;
 const HORIZONTAL_RANGE = 4;
 const INITIAL_PLATFORMS = 25;
-const LEADERBOARD_KEY = 'towerJumpLeaderboard';
 const MAX_LEADERBOARD_ENTRIES = 10;
 
 // Camera scroll speed (constant upward movement)
@@ -126,8 +125,10 @@ function init() {
     saveScoreBtn.addEventListener('click', saveScore);
 
     // Load and display leaderboard
-    updateLeaderboardDisplay();
-    updateHighScoreDisplay();
+    loadLeaderboard().then(() => {
+        renderLeaderboard(leaderboardList);
+        updateHighScoreDisplay();
+    });
 
     // Initial render
     renderer.render(scene, camera);
@@ -569,20 +570,24 @@ function startGame() {
     animate();
 }
 
-function gameOver() {
+async function gameOver() {
     gameOverTriggered = true;
     gameRunning = false;
 
     finalScoreElement.textContent = score;
 
-    // Check if score qualifies for leaderboard
-    const leaderboard = getLeaderboard();
-    const qualifies = leaderboard.length < MAX_LEADERBOARD_ENTRIES ||
-                      score > leaderboard[leaderboard.length - 1]?.score;
+    // Reload leaderboard to get latest data
+    await loadLeaderboard();
+
+    // Check if score qualifies for leaderboard (always allow saving if score > 0)
+    const qualifies = cachedLeaderboard.length < MAX_LEADERBOARD_ENTRIES ||
+                      score > (cachedLeaderboard[cachedLeaderboard.length - 1]?.score || 0);
 
     if (qualifies && score > 0) {
         newHighScoreDiv.classList.remove('hidden');
         saveScoreBtn.classList.remove('hidden');
+        saveScoreBtn.disabled = false;
+        saveScoreBtn.textContent = 'Ulozit skore';
         playerNameInput.value = '';
         playerNameInput.focus();
     } else {
@@ -590,51 +595,70 @@ function gameOver() {
         saveScoreBtn.classList.add('hidden');
     }
 
-    updateLeaderboardDisplay(gameOverLeaderboardList);
+    renderLeaderboard(gameOverLeaderboardList);
     gameOverScreen.classList.remove('hidden');
 }
 
-function saveScore() {
+// Cache for leaderboard data
+let cachedLeaderboard = [];
+
+async function saveScore() {
     const name = playerNameInput.value.trim() || 'Anonymous';
-    const leaderboard = getLeaderboard();
 
-    leaderboard.push({
-        name: name,
-        score: score,
-        date: new Date().toISOString()
-    });
+    // Disable button while saving
+    saveScoreBtn.disabled = true;
+    saveScoreBtn.textContent = 'Ukladam...';
 
-    // Sort by score descending and keep top entries
-    leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard.splice(MAX_LEADERBOARD_ENTRIES);
-
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
-
-    newHighScoreDiv.classList.add('hidden');
-    saveScoreBtn.classList.add('hidden');
-
-    updateLeaderboardDisplay();
-    updateLeaderboardDisplay(gameOverLeaderboardList);
-    updateHighScoreDisplay();
-}
-
-function getLeaderboard() {
     try {
-        return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
-    } catch {
-        return [];
+        const response = await fetch('/api/scores', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, score })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save score');
+        }
+
+        newHighScoreDiv.classList.add('hidden');
+        saveScoreBtn.classList.add('hidden');
+
+        // Refresh leaderboard
+        await loadLeaderboard();
+        renderLeaderboard(leaderboardList);
+        renderLeaderboard(gameOverLeaderboardList);
+        updateHighScoreDisplay();
+    } catch (error) {
+        console.error('Error saving score:', error);
+        alert('Chyba pri ukladani skore. Zkus to znovu.');
+        saveScoreBtn.disabled = false;
+        saveScoreBtn.textContent = 'Ulozit skore';
     }
 }
 
-function updateLeaderboardDisplay(listElement = leaderboardList) {
-    const leaderboard = getLeaderboard();
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/scores');
+        if (!response.ok) {
+            throw new Error('Failed to load scores');
+        }
+        const data = await response.json();
+        cachedLeaderboard = data.scores || [];
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        cachedLeaderboard = [];
+    }
+}
 
-    if (leaderboard.length === 0) {
+function renderLeaderboard(listElement = leaderboardList) {
+    if (cachedLeaderboard.length === 0) {
         listElement.innerHTML = '<li class="no-scores">Zatim zadne skore</li>';
         return;
     }
 
-    listElement.innerHTML = leaderboard.map((entry, index) => `
+    listElement.innerHTML = cachedLeaderboard.map((entry, index) => `
         <li>
             <span class="rank">#${index + 1}</span>
             <span class="player-name">${escapeHtml(entry.name)}</span>
@@ -644,10 +668,14 @@ function updateLeaderboardDisplay(listElement = leaderboardList) {
 }
 
 function updateHighScoreDisplay() {
-    const leaderboard = getLeaderboard();
-    if (leaderboard.length > 0) {
-        highScoreElement.textContent = `Best: ${leaderboard[0].score}`;
+    if (cachedLeaderboard.length > 0) {
+        highScoreElement.textContent = `Best: ${cachedLeaderboard[0].score}`;
     }
+}
+
+async function updateLeaderboardDisplay(listElement = leaderboardList) {
+    await loadLeaderboard();
+    renderLeaderboard(listElement);
 }
 
 function escapeHtml(text) {
